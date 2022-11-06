@@ -1,14 +1,20 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
+
+	"github.com/spf13/afero"
 
 	"github.com/antchfx/xmlquery"
 )
+
+var AppFs = afero.NewOsFs()
 
 func main() {
 	dirPath := flag.String("p", ".", "Absolute path to the directory")
@@ -35,7 +41,7 @@ func RenameFiles(dirPath string) (n int, err error) {
 	for _, file := range files {
 
 		if path.Ext(file.Name()) == ".xml" {
-			xmlFile, err := os.Open(filepath.Join(dirPath, file.Name()))
+			xmlFile, err := AppFs.Open(filepath.Join(dirPath, file.Name()))
 			if err != nil {
 				return count, err
 			}
@@ -44,10 +50,17 @@ func RenameFiles(dirPath string) (n int, err error) {
 				return count, err
 			}
 			updateSetName, ok := GetNameFromXML(doc)
-			if ok && filepath.Base(xmlFile.Name()) != updateSetName+".xml" {
-				fmt.Printf("Renamed: %s to %s \n", filepath.Base(xmlFile.Name()), updateSetName+".xls")
-				os.Rename(xmlFile.Name(), filepath.Join(dirPath, updateSetName)+".xml")
-				count++
+
+			if ok && strings.TrimSuffix(filepath.Base(xmlFile.Name()), filepath.Ext(xmlFile.Name())) != updateSetName {
+				newName := GetNewName(dirPath, updateSetName, 0)
+				err := AppFs.Rename(xmlFile.Name(), filepath.Join(dirPath, newName)+".xml")
+				if err != nil {
+					fmt.Printf("Error renaming file : %s \n %s \n", filepath.Base(xmlFile.Name()), err)
+				} else {
+					fmt.Printf("Renamed: %s to %s \n", filepath.Base(xmlFile.Name()), newName+".xls")
+					count++
+				}
+
 			}
 
 			defer xmlFile.Close()
@@ -62,4 +75,19 @@ func GetNameFromXML(f *xmlquery.Node) (name string, ok bool) {
 		return n.InnerText(), true
 	}
 	return "", false
+}
+
+// returns new file name based on pased string, if same name exsit return name with incrament
+func GetNewName(dirPath string, fileName string, i int) string {
+	if _, err := AppFs.Stat(filepath.Join(dirPath, fileName) + ".xml"); errors.Is(err, os.ErrNotExist) {
+		return fileName
+	} else {
+		if i > 0 {
+			fileName = strings.TrimSuffix(fileName, "-"+fmt.Sprint(i))
+		}
+		i++
+		fileName = fmt.Sprintf("%s-%d", fileName, i)
+		return GetNewName(dirPath, fileName, i)
+	}
+
 }
