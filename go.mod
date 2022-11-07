@@ -2,6 +2,8 @@ module github.com/sas604/UpdateSetUtil
 
 go 1.19
 
+
+
 require (
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/spf13/afero v1.9.2

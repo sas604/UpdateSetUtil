@@ -23,6 +23,7 @@ func TestValidPath(t *testing.T) {
 	}
 }
 
+// test if handles duplicates
 func TestGetNewNameWithDuplicates(t *testing.T) {
 	AppFs.MkdirAll("testDir", 0755)
 	afero.WriteFile(AppFs, "testDir/test.xml", []byte("file b"), 0644)

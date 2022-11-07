@@ -77,7 +77,8 @@ func GetNameFromXML(f *xmlquery.Node) (name string, ok bool) {
 	return "", false
 }
 
-// returns new file name based on pased string, if same name exsit return name with incrament
+// returns new file name based on passed string.
+// if file with the same filename  exsit return name with appended number
 func GetNewName(dirPath string, fileName string, i int) string {
 	if _, err := AppFs.Stat(filepath.Join(dirPath, fileName) + ".xml"); errors.Is(err, os.ErrNotExist) {
 		return fileName
